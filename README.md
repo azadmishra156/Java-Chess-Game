@@ -24,30 +24,7 @@ A complete 2-player chess game developed in Java using Swing for the graphical i
 
 ---
 
-## 📁 Project Structure
-Java-Chess-Game/
-│
-├── Chess/
-│   ├── Board.java           # Handles game board setup and move logic
-│   ├── ChessGUI.java        # Main graphical user interface
-│   ├── Piece.java           # Abstract base class for all pieces
-│   ├── Pawn.java            # Pawn-specific logic
-│   ├── Rook.java            # Rook-specific logic
-│   ├── Knight.java          # Knight-specific logic
-│   ├── Bishop.java          # Bishop-specific logic
-│   ├── Queen.java           # Queen-specific logic
-│   ├── King.java            # King-specific logic
-│   ├── Position.java        # Represents a square on the board
-│   └── Theme.java           # Enum for UI themes
-│
-├── assets/
-│   └── icons/               # Folder for piece images (e.g. white_pawn.png)
-│       ├── classic/
-│       ├── dark/
-│       └── ice/
-│
-├── saved_game.ser           # Serialized file for saving game state (created at runtime)
-├── README.md                # Project overview and setup instructions
+
 
 
 ## ⚙️ How to Set Up and Run the Project
@@ -69,8 +46,10 @@ Java-Chess-Game/
    cd java-chess-game
    
 2. **Compile the Source Code**
+   
    javac -d bin src/Chess/*.java
    
 3. **Run the Game**
+ 
    java -cp bin Chess.ChessGUI   
 
