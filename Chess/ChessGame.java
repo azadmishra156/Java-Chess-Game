@@ -35,7 +35,21 @@ public class ChessGame {
                 Position to = Position.fromString(parts[1]);
             
                 boolean moveSuccess = board.movePiece(from, to, isWhiteTurn);
+                
                 if (moveSuccess) {
+                    
+                    // --- Pawn Promotion Logic ---
+                    Piece movedPiece = board.getPieceAt(to);
+                    if (movedPiece instanceof Pawn) {
+                        if ((movedPiece.isWhite && to.row == 0) || (!movedPiece.isWhite && to.row == 7)) {
+                            board.printBoard(); // Show the board before asking
+                            System.out.print("Promote pawn to (Q, R, B, N): ");
+                            String choice = scanner.nextLine().trim();
+                            board.performPromotion(to, choice, isWhiteTurn);
+                        }
+                    }
+
+                    // --- Check and Checkmate Logic ---
                     board.printBoard();
             
                     if (board.isKingInCheck(!isWhiteTurn)) {
@@ -62,4 +76,3 @@ public class ChessGame {
         game.start();
     }
 }
-

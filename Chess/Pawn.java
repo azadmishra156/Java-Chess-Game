@@ -9,25 +9,36 @@ public class Pawn extends Piece implements Serializable {
     }
 
     @Override
-    public boolean isValidMove(Position from, Position to, Piece[][] board) {
+    public boolean isValidMove(Position from, Position to, Board board) {
         int dir = isWhite ? -1 : 1;
         int startRow = isWhite ? 6 : 1;
 
         // Standard forward move
         if (from.col == to.col) {
-            if (to.row == from.row + dir && board[to.row][to.col] == null) {
+            // Single move
+            if (to.row == from.row + dir && board.getPieceAt(to) == null) {
                 return true;
             }
-
             // Double move from start
-            if (from.row == startRow && to.row == from.row + 2 * dir && board[from.row + dir][from.col] == null && board[to.row][to.col] == null) {
+            if (from.row == startRow && to.row == from.row + 2 * dir && 
+                board.getPieceAt(new Position(from.row + dir, from.col)) == null && 
+                board.getPieceAt(to) == null) {
                 return true;
             }
         }
 
         // Capture
         if (Math.abs(from.col - to.col) == 1 && to.row == from.row + dir) {
-            return board[to.row][to.col] != null && board[to.row][to.col].isWhite != isWhite;
+            // Standard capture
+            Piece target = board.getPieceAt(to);
+            if (target != null && target.isWhite != isWhite) {
+                return true;
+            }
+            
+            // En Passant capture
+            if (to.equals(board.getEnPassantTarget())) {
+                return true;
+            }
         }
 
         return false;

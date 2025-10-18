@@ -5,8 +5,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+import javax.swing.Timer;
 
 public class ChessGUI extends JFrame {
+    // ... (no changes to fields) ...
     private JButton[][] squares = new JButton[8][8];
     private Board board;
     private Position selectedPosition = null;
@@ -14,8 +16,11 @@ public class ChessGUI extends JFrame {
     private java.util.List<Position> validMoves = new ArrayList<>();
     private java.util.Stack<Piece[][]> history = new Stack<>();
     private Theme theme = Theme.CLASSIC;
+    private JLayeredPane layeredPane;
+    private JPanel boardPanel;
 
     public ChessGUI() {
+        // ... (no changes to constructor) ...
         setTitle("Java Chess");
         setSize(640, 700);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -23,38 +28,25 @@ public class ChessGUI extends JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
 
+        // Enable layered pane for animations
+        layeredPane = getLayeredPane();
+        
         UIManager.put("Button.focus", Color.BLACK);
 
         createMenuBar();
+        initializeBoard();
+        setVisible(true);
+    }
 
+    private void initializeBoard() {
+        // ... (no changes here) ...
         board = new Board();
-        JPanel boardPanel = new JPanel(new GridLayout(8, 8));
-
+        boardPanel = new JPanel(new GridLayout(8, 8));
+        boardPanel.setBounds(0, 0, 640, 640);
+        
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                JButton button = new JButton();
-                button.setFont(new Font("Segoe UI", Font.PLAIN, 28));
-                button.setFocusPainted(false);
-                button.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-                button.setContentAreaFilled(true);
-                final int r = row, c = col;
-                button.addActionListener(e -> handleClick(r, c));
-                button.addMouseListener(new MouseAdapter() {
-                    public void mouseEntered(MouseEvent e) {
-                        if (button.getBackground() != theme.selectedSquare &&
-                            button.getBackground() != theme.highlightMove &&
-                            button.getBackground() != theme.highlightCapture &&
-                            button.getBackground() != theme.kingInCheck) {
-                            button.setBorder(BorderFactory.createLineBorder(Color.YELLOW));
-                        }
-                        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                    }
-
-                    public void mouseExited(MouseEvent e) {
-                        button.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-                        button.setCursor(Cursor.getDefaultCursor());
-                    }
-                });
+                JButton button = createSquareButton(row, col);
                 squares[row][col] = button;
                 boardPanel.add(button);
             }
@@ -62,10 +54,40 @@ public class ChessGUI extends JFrame {
 
         add(boardPanel, BorderLayout.CENTER);
         updateBoard();
-        setVisible(true);
+    }
+
+    private JButton createSquareButton(int row, int col) {
+        // ... (no changes here) ...
+        JButton button = new JButton();
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 28));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        button.setContentAreaFilled(true);
+        
+        button.addActionListener(e -> handleClick(row, col));
+        
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                if (button.getBackground() != theme.selectedSquare &&
+                    button.getBackground() != theme.highlightMove &&
+                    button.getBackground() != theme.highlightCapture &&
+                    button.getBackground() != theme.kingInCheck) {
+                    button.setBorder(BorderFactory.createLineBorder(Color.YELLOW));
+                }
+                button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                button.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+                button.setCursor(Cursor.getDefaultCursor());
+            }
+        });
+        
+        return button;
     }
 
     private void createMenuBar() {
+        // ... (no changes here) ...
         JMenuBar menuBar = new JMenuBar();
 
         JMenu gameMenu = new JMenu("Menu");
@@ -103,6 +125,7 @@ public class ChessGUI extends JFrame {
     }
 
     private void restartGame() {
+        // ... (no changes here) ...
         board = new Board();
         isWhiteTurn = true;
         history.clear();
@@ -110,8 +133,9 @@ public class ChessGUI extends JFrame {
     }
 
     private void saveGame() {
+        // ... (no changes here) ...
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("saved_game.ser"))) {
-            out.writeObject(board.board);
+            out.writeObject(board); // Save the whole Board object
             out.writeObject(isWhiteTurn);
             JOptionPane.showMessageDialog(this, "Game saved successfully.");
         } catch (IOException e) {
@@ -120,8 +144,9 @@ public class ChessGUI extends JFrame {
     }
 
     private void loadGame() {
+        // ... (no changes here) ...
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("saved_game.ser"))) {
-            board.board = (Piece[][]) in.readObject();
+            board = (Board) in.readObject(); // Load the whole Board object
             isWhiteTurn = (boolean) in.readObject();
             updateBoard();
             JOptionPane.showMessageDialog(this, "Game loaded successfully.");
@@ -131,10 +156,11 @@ public class ChessGUI extends JFrame {
     }
 
     private void updateBoard() {
+        // ... (no changes here) ...
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 squares[row][col].setBackground((row + col) % 2 == 0 ? theme.lightSquare : theme.darkSquare);
-                Piece piece = board.board[row][col];
+                Piece piece = board.getPieceAt(new Position(row, col));
                 JButton button = squares[row][col];
 
                 if (piece != null) {
@@ -157,11 +183,18 @@ public class ChessGUI extends JFrame {
                 }
             }
         }
+        highlightKingInCheck();
     }
 
     private ImageIcon loadPieceImage(String name) {
+        // ... (no changes here) ...
         try {
-            ImageIcon icon = new ImageIcon(getClass().getResource(theme.iconFolder + name + ".png"));
+            java.net.URL url = getClass().getResource(theme.iconFolder + name + ".png");
+            if (url == null) {
+                System.err.println("Could not find image: " + theme.iconFolder + name + ".png");
+                return null;
+            }
+            ImageIcon icon = new ImageIcon(url);
             Image scaledImage = icon.getImage().getScaledInstance(64, 64, Image.SCALE_SMOOTH);
             return new ImageIcon(scaledImage);
         } catch (Exception e) {
@@ -171,88 +204,195 @@ public class ChessGUI extends JFrame {
     }
 
     private void handleClick(int row, int col) {
+        // ... (no changes here) ...
         Position clicked = new Position(row, col);
         if (selectedPosition == null) {
-            if (board.board[row][col] != null && board.board[row][col].isWhite == isWhiteTurn) {
+            Piece p = board.getPieceAt(clicked);
+            if (p != null && p.isWhite == isWhiteTurn) {
                 selectedPosition = clicked;
                 squares[row][col].setBackground(theme.selectedSquare);
                 highlightValidMoves(clicked);
             }
         } else {
-            boolean isValidDestination = false;
-            for (Position pos : validMoves) {
-                if (pos.row == row && pos.col == col) {
-                    isValidDestination = true;
-                    break;
-                }
-            }
+            boolean isValidDestination = validMoves.stream().anyMatch(pos -> pos.row == row && pos.col == col);
 
             if (isValidDestination) {
-                Board testBoard = new Board();
-                testBoard.board = deepCopyBoard(board.board);
-                history.push(deepCopyBoard(board.board));
-
-                boolean testMove = testBoard.movePiece(selectedPosition, clicked, isWhiteTurn);
-                if (testMove && !testBoard.isKingInCheck(isWhiteTurn)) {
-                    boolean moved = board.movePiece(selectedPosition, clicked, isWhiteTurn);
-                    if (moved) {
-                        isWhiteTurn = !isWhiteTurn;
-                        Piece promoted = board.board[clicked.row][clicked.col];
-                        if (promoted instanceof Pawn &&
-                            ((promoted.isWhite && clicked.row == 0) || (!promoted.isWhite && clicked.row == 7))) {
-                            String[] options = {"Queen", "Rook", "Bishop", "Knight"};
-                            String choice = (String) JOptionPane.showInputDialog(
-                                this, "Promote pawn to:", "Pawn Promotion",
-                                JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
-                            if (choice != null) {
-                                boolean isWhite = promoted.isWhite;
-                                switch (choice) {
-                                    case "Queen" -> board.board[clicked.row][clicked.col] = new Queen(isWhite);
-                                    case "Rook" -> board.board[clicked.row][clicked.col] = new Rook(isWhite);
-                                    case "Bishop" -> board.board[clicked.row][clicked.col] = new Bishop(isWhite);
-                                    case "Knight" -> board.board[clicked.row][clicked.col] = new Knight(isWhite);
-                                }
-                            }
-                        }
-
-                        if (board.isKingInCheck(!isWhiteTurn)) {
-                            JOptionPane.showMessageDialog(this,
-                                (!isWhiteTurn ? "White" : "Black") + " king is in check!");
-                            if (board.isCheckmate(!isWhiteTurn)) {
-                                JOptionPane.showMessageDialog(this,
-                                    (!isWhiteTurn ? "White" : "Black") + " is checkmated! Game over.");
-                                System.exit(0);
-                            }
-                        }
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(this, "Illegal move: King would be in check.");
-                }
+                animatePieceMove(selectedPosition, clicked);
+                
+            } else {
+                resetHighlights();
+                selectedPosition = null;
+                updateBoard(); // Deselect
             }
-
-            resetHighlights();
-            selectedPosition = null;
-            updateBoard();
-            highlightKingInCheck();
         }
+    }
+
+
+    private void animatePieceMove(Position from, Position to) {
+        // ... (no changes here) ...
+        JButton fromButton = squares[from.row][from.col];
+        JButton toButton = squares[to.row][to.col];
+        Icon pieceIcon = fromButton.getIcon();
+        fromButton.setIcon(null);
+
+        Point fromPoint = fromButton.getLocation();
+        Point toPoint = toButton.getLocation();
+        int deltaX = toPoint.x - fromPoint.x;
+        int deltaY = toPoint.y - fromPoint.y;
+        
+        JLabel movingPiece = new JLabel(pieceIcon);
+        movingPiece.setSize(fromButton.getWidth(), fromButton.getHeight());
+        movingPiece.setLocation(fromPoint);
+        layeredPane.add(movingPiece, JLayeredPane.DRAG_LAYER);
+        layeredPane.moveToFront(movingPiece);
+        
+        int duration = 200;
+        int frames = 20;
+        int delay = duration / frames;
+        final int[] frame = {0};
+        
+        Timer timer = new Timer(delay, e -> {
+            frame[0]++;
+            
+            float progress = (float) frame[0] / frames;
+            progress = (float) Math.sin(progress * Math.PI / 2);
+            int currentX = fromPoint.x + (int)(deltaX * progress);
+            int currentY = fromPoint.y + (int)(deltaY * progress);
+            
+            movingPiece.setLocation(currentX, currentY);
+            
+            if (frame[0] >= frames) {
+                ((Timer)e.getSource()).stop();
+                layeredPane.remove(movingPiece);
+                toButton.setIcon(pieceIcon); // Temporarily set icon
+                toButton.repaint();
+                
+                SwingUtilities.invokeLater(() -> {
+                    // Now, make the actual move on the board
+                    boolean moved = board.movePiece(selectedPosition, to, isWhiteTurn);
+                    if (moved) {
+                        handlePostMove(to);
+                    } else {
+                        // Move was illegal (e.g., put king in check)
+                        JOptionPane.showMessageDialog(this, "Illegal move: King would be in check.");
+                        // Revert visual change
+                        fromButton.setIcon(pieceIcon);
+                        // Clear the 'to' square icon, which might have been a capture
+                        Piece targetPiece = board.getPieceAt(to);
+                        if (targetPiece == null) {
+                            toButton.setIcon(null);
+                        } // if targetPiece != null, updateBoard() will fix it
+                        
+                        resetHighlights();
+                        selectedPosition = null;
+                        updateBoard(); // Fully redraw the board to fix any visual glitch
+                    }
+                });
+            }
+        });
+        
+        timer.setInitialDelay(0);
+        timer.start();
+    }
+
+    private void handlePostMove(Position to) {
+        // ... (no changes here) ...
+        isWhiteTurn = !isWhiteTurn;
+        
+        // --- Handle Pawn Promotion ---
+        Piece promoted = board.getPieceAt(to);
+        if (promoted instanceof Pawn && 
+            ((promoted.isWhite && to.row == 0) || (!promoted.isWhite && to.row == 7))) {
+            handlePromotion(to, promoted.isWhite);
+        }
+
+        // --- Handle Check / Checkmate ---
+        if (board.isKingInCheck(!isWhiteTurn)) {
+            JOptionPane.showMessageDialog(this,
+                (!isWhiteTurn ? "White" : "Black") + " king is in check!");
+            if (board.isCheckmate(!isWhiteTurn)) {
+                JOptionPane.showMessageDialog(this,
+                    (!isWhiteTurn ? "White" : "Black") + " is checkmated! Game over.");
+                restartGame(); // Or some other end-game logic
+            }
+        }
+
+        resetHighlights();
+        selectedPosition = null;
+        updateBoard();
+    }
+
+    private void handlePromotion(Position pos, boolean isWhite) {
+        // ... (no changes here) ...
+        String[] options = {"Queen", "Rook", "Bishop", "Knight"};
+        String choice = (String) JOptionPane.showInputDialog(
+            this, "Promote pawn to:", "Pawn Promotion",
+            JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+            
+        if (choice == null) {
+            choice = "Queen"; // Default to Queen if dialog is cancelled
+        }
+        
+        // Use the new board method to perform the promotion
+        board.performPromotion(pos, choice, isWhite);
+        
+        updateBoard(); // Redraw board with the new piece
     }
 
     private void highlightValidMoves(Position from) {
         validMoves.clear();
-        Piece piece = board.board[from.row][from.col];
+        Piece piece = board.getPieceAt(from);
         if (piece == null) return;
 
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 Position to = new Position(row, col);
-                if (piece.isValidMove(from, to, board.board)) {
-                    Piece target = board.board[to.row][to.col];
-                    if (target == null) {
-                        squares[row][col].setBackground(theme.highlightMove);
-                        validMoves.add(to);
-                    } else if (target.isWhite != piece.isWhite) {
-                        squares[row][col].setBackground(theme.highlightCapture);
-                        validMoves.add(to);
+                
+                // Updated to pass 'board'
+                if (piece.isValidMove(from, to, board)) {
+                    
+                    // --- CASTLING FIX: Simulation ---
+                    Piece target = board.getPieceAt(to);
+                    board.board[to.row][to.col] = piece; // Simulate
+                    board.board[from.row][from.col] = null;
+                    
+                    Position rookFrom = null;
+                    Position rookTo = null;
+                    Piece castlingRook = null;
+                    boolean isCastleMove = (piece instanceof King && Math.abs(from.col - to.col) == 2);
+                    
+                    if (isCastleMove) {
+                        int rookCol = (to.col > from.col) ? 7 : 0;
+                        int newRookCol = (to.col > from.col) ? 5 : 3;
+                        rookFrom = new Position(from.row, rookCol);
+                        rookTo = new Position(from.row, newRookCol);
+                        
+                        castlingRook = board.board[rookFrom.row][rookFrom.col];
+                        board.board[rookTo.row][rookTo.col] = castlingRook;
+                        board.board[rookFrom.row][rookFrom.col] = null;
+                    }
+                    
+                    boolean selfCheck = board.isKingInCheck(piece.isWhite);
+                    
+                    // Undo simulation
+                    board.board[from.row][from.col] = piece;
+                    board.board[to.row][to.col] = target;
+                    
+                    if (isCastleMove && castlingRook != null) {
+                        board.board[rookFrom.row][rookFrom.col] = castlingRook;
+                        board.board[rookTo.row][rookTo.col] = null;
+                    }
+                    // --- End Simulation ---
+
+                    if (!selfCheck) {
+                        Piece targetPiece = board.getPieceAt(to); // Re-get target just in case
+                        if (targetPiece == null) {
+                            squares[row][col].setBackground(theme.highlightMove);
+                            validMoves.add(to);
+                        } else if (targetPiece.isWhite != piece.isWhite) {
+                            squares[row][col].setBackground(theme.highlightCapture);
+                            validMoves.add(to);
+                        }
                     }
                 }
             }
@@ -260,6 +400,7 @@ public class ChessGUI extends JFrame {
     }
 
     private void resetHighlights() {
+        // ... (no changes here) ...
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 squares[i][j].setBackground((i + j) % 2 == 0 ? theme.lightSquare : theme.darkSquare);
@@ -268,9 +409,10 @@ public class ChessGUI extends JFrame {
     }
 
     private void highlightKingInCheck() {
+        // ... (no changes here) ...
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                Piece p = board.board[row][col];
+                Piece p = board.getPieceAt(new Position(row, col));
                 if (p instanceof King && p.isWhite == isWhiteTurn && board.isKingInCheck(isWhiteTurn)) {
                     squares[row][col].setBackground(theme.kingInCheck);
                     return;
@@ -279,24 +421,11 @@ public class ChessGUI extends JFrame {
         }
     }
 
-    private Piece[][] deepCopyBoard(Piece[][] original) {
-        Piece[][] copy = new Piece[8][8];
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                Piece p = original[row][col];
-                if (p == null) continue;
-                if (p instanceof Pawn) copy[row][col] = new Pawn(p.isWhite);
-                else if (p instanceof Rook) copy[row][col] = new Rook(p.isWhite);
-                else if (p instanceof Knight) copy[row][col] = new Knight(p.isWhite);
-                else if (p instanceof Bishop) copy[row][col] = new Bishop(p.isWhite);
-                else if (p instanceof Queen) copy[row][col] = new Queen(p.isWhite);
-                else if (p instanceof King) copy[row][col] = new King(p.isWhite);
-            }
-        }
-        return copy;
-    }
-
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(ChessGUI::new);
+        // ... (no changes here) ...
+        SwingUtilities.invokeLater(() -> {
+            ChessGUI chess = new ChessGUI();
+            chess.setVisible(true);
+        });
     }
 }

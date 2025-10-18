@@ -9,11 +9,10 @@ public class Rook extends Piece implements Serializable {
     }
 
     @Override
-    public boolean isValidMove(Position from, Position to, Piece[][] board) {
+    public boolean isValidMove(Position from, Position to, Board board) {
         if (from.row == to.row || from.col == to.col) {
-            Board b = new Board();
-            b.board = board;
-            return b.isPathClear(from, to);
+            // No need to create a new board, just use the one passed in!
+            return board.isPathClear(from, to);
         }
         return false;
     }
